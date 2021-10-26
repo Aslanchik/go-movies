@@ -11,17 +11,17 @@ func FetchAll(ctx *fiber.Ctx) error {
 }
 
 func FetchById(ctx *fiber.Ctx) error {
-	return ctx.JSON("Fetch movie")
+	return model.FetchById(ctx)
 }
 
 func Insert(ctx *fiber.Ctx) error {
-	return ctx.JSON("Insert new movie")
+	return model.Insert(ctx)
 }
 
 func UpdateById(ctx *fiber.Ctx) error {
-	return ctx.JSON("Update movie")
+	return model.UpdateById(ctx)
 }
 
 func DeleteById(ctx *fiber.Ctx) error {
-	return ctx.JSON("Delete movie")
+	return model.DeleteById(ctx)
 }

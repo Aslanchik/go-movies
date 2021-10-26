@@ -1,6 +1,7 @@
 package movies_schema
 
 type Movie struct {
+	ID       string `json:"id,omitempty" bson:"_id,omitempty"`
 	Title    string `json:"title"`
 	Year     string `json:"release_year"`
 	Director string `json:"director"`
@@ -8,10 +9,3 @@ type Movie struct {
 }
 
 const SCHEMA_NAME = "movies"
-
-// [
-// 	{
-// 		"title": "The Green Hornet",
-// 		"release_year": "1993"
-// 	}
-// ]
