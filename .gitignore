@@ -16,3 +16,8 @@
 
 .history
 src/db/mongodb/database
+src/db/neo4j/conf
+src/db/neo4j/data
+src/db/neo4j/import
+src/db/neo4j/logs
+src/db/neo4j/plugins

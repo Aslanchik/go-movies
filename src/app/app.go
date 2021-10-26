@@ -1,9 +1,8 @@
 package app
 
 import (
-	"fmt"
 	"go-movies/src/api/v1"
-	mongo "go-movies/src/db/mongodb"
+	"go-movies/src/db"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -11,11 +10,7 @@ import (
 func StartApp() {
 	app := fiber.New()
 
-	err := mongo.ConfigureAndConnect()
-
-	if err == nil {
-		fmt.Println("DB Connection Established!")
-	}
+	db.InitDatabases()
 
 	api.SetupRoutes(app)
 
