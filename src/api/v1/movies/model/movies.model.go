@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func FetchAll(ctx *fiber.Ctx) error {
@@ -15,13 +16,13 @@ func FetchAll(ctx *fiber.Ctx) error {
 
 	cursor, err := mongodb.Instance.Db.Collection(schema.SCHEMA_NAME).Find(ctx.Context(), query)
 	if err != nil {
-		return ctx.Status(500).JSON(err)
+		return ctx.Status(500).SendString(err.Error())
 	}
 
 	var movies []schema.Movie = make([]schema.Movie, 0)
 
 	if err := cursor.All(ctx.Context(), &movies); err != nil {
-		return ctx.Status(500).JSON(err)
+		return ctx.Status(500).SendString(err.Error())
 	}
 
 	return ctx.Status(200).JSON(movies)
@@ -30,21 +31,24 @@ func FetchAll(ctx *fiber.Ctx) error {
 func FetchById(ctx *fiber.Ctx) error {
 	id, err := primitive.ObjectIDFromHex(ctx.Params("id"))
 	if err != nil {
-		return ctx.Status(400).JSON(err)
+		return ctx.Status(400).SendString(err.Error())
 	}
 
 	collection := mongodb.Instance.Db.Collection(schema.SCHEMA_NAME)
 
 	query := bson.D{{Key: "_id", Value: id}}
 
-	movie, err := collection.Find(ctx.Context(), query)
+	movie := new(schema.Movie)
 
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return ctx.Status(404).JSON(err)
+	error := collection.FindOne(ctx.Context(), query).Decode(&movie)
+
+	if error != nil {
+		if error == mongo.ErrNoDocuments {
+			return ctx.Status(404).JSON(error)
 		}
-		return ctx.Status(500).JSON(err)
+		return ctx.Status(500).JSON(error)
 	}
+
 	return ctx.Status(200).JSON(movie)
 }
 
@@ -54,14 +58,14 @@ func Insert(ctx *fiber.Ctx) error {
 	movie := new(schema.Movie)
 
 	if err := ctx.BodyParser(movie); err != nil {
-		return ctx.Status(400).JSON(err)
+		return ctx.Status(400).SendString(err.Error())
 	}
 
 	movie.ID = ""
 
 	res, err := collection.InsertOne(ctx.Context(), movie)
 	if err != nil {
-		return ctx.Status(500).JSON(err)
+		return ctx.Status(500).SendString(err.Error())
 	}
 
 	filter := bson.D{{Key: "_id", Value: res.InsertedID}}
@@ -78,13 +82,13 @@ func UpdateById(ctx *fiber.Ctx) error {
 	movieId, err := primitive.ObjectIDFromHex(id)
 
 	if err != nil {
-		return ctx.Status(400).JSON(err)
+		return ctx.Status(400).SendString(err.Error())
 	}
 
 	movie := new(schema.Movie)
 
 	if err := ctx.BodyParser(movie); err != nil {
-		return ctx.Status(400).JSON(err)
+		return ctx.Status(400).SendString(err.Error())
 	}
 
 	query := bson.D{{Key: "_id", Value: movieId}}
@@ -92,7 +96,7 @@ func UpdateById(ctx *fiber.Ctx) error {
 		Key: "$set",
 		Value: bson.D{
 			{Key: "title", Value: movie.Title},
-			{Key: "release_year", Value: movie.Year},
+			{Key: "year", Value: movie.Year},
 			{Key: "director", Value: movie.Director},
 			{Key: "genre", Value: movie.Genre},
 		},
@@ -103,13 +107,49 @@ func UpdateById(ctx *fiber.Ctx) error {
 	if err != nil {
 		// ErrNoDocuments means that the filter did not match any documents in the collection
 		if err == mongo.ErrNoDocuments {
-			return ctx.Status(404).JSON(err)
+			return ctx.Status(404).SendString(err.Error())
 		}
-		return ctx.Status(500).JSON(err)
+		return ctx.Status(500).SendString(err.Error())
 	}
 
 	movie.ID = id
 	return ctx.Status(200).JSON(movie)
+}
+
+func Upsert(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
+	movieId, err := primitive.ObjectIDFromHex(id)
+
+	if err != nil {
+		return ctx.Status(400).SendString(err.Error())
+	}
+
+	movie := new(schema.Movie)
+
+	if err := ctx.BodyParser(movie); err != nil {
+		return ctx.Status(400).SendString(err.Error())
+	}
+	// set the query to upsert if no movie exists
+	opts := options.Update().SetUpsert(true)
+	query := bson.D{{Key: "_id", Value: movieId}}
+	update := bson.D{{
+		Key: "$set",
+		Value: bson.D{
+			{Key: "title", Value: movie.Title},
+			{Key: "year", Value: movie.Year},
+			{Key: "director", Value: movie.Director},
+			{Key: "genre", Value: movie.Genre},
+		},
+	}}
+
+	res, err := mongodb.Instance.Db.Collection(schema.SCHEMA_NAME).UpdateOne(ctx.Context(), query, update, opts)
+
+	if err != nil {
+		return ctx.Status(500).SendString(err.Error())
+	}
+
+	return ctx.Status(200).JSON(res)
+
 }
 
 func DeleteById(ctx *fiber.Ctx) error {
@@ -119,7 +159,7 @@ func DeleteById(ctx *fiber.Ctx) error {
 
 	// the provided ID might be invalid ObjectID
 	if err != nil {
-		return ctx.Status(400).JSON(err)
+		return ctx.Status(400).SendString(err.Error())
 	}
 
 	// find and delete the movie with the given ID
@@ -127,7 +167,7 @@ func DeleteById(ctx *fiber.Ctx) error {
 	result, err := mongodb.Instance.Db.Collection(schema.SCHEMA_NAME).DeleteOne(ctx.Context(), &query)
 
 	if err != nil {
-		return ctx.Status(500).JSON(err)
+		return ctx.Status(500).SendString(err.Error())
 	}
 
 	// the movie might not exist

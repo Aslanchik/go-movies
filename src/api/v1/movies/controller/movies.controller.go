@@ -18,6 +18,10 @@ func Insert(ctx *fiber.Ctx) error {
 	return handler.Insert(ctx)
 }
 
+func Upsert(ctx *fiber.Ctx) error {
+	return handler.Upsert(ctx)
+}
+
 func UpdateById(ctx *fiber.Ctx) error {
 	return handler.UpdateById(ctx)
 }

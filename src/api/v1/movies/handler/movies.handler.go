@@ -18,6 +18,10 @@ func Insert(ctx *fiber.Ctx) error {
 	return model.Insert(ctx)
 }
 
+func Upsert(ctx *fiber.Ctx) error {
+	return model.Upsert(ctx)
+}
+
 func UpdateById(ctx *fiber.Ctx) error {
 	return model.UpdateById(ctx)
 }

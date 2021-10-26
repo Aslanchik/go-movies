@@ -13,5 +13,6 @@ func InitRoutes(app *fiber.App) {
 	api.Get("/:id", controller.FetchById)
 	api.Post("/", controller.Insert)
 	api.Put("/:id", controller.UpdateById)
+	api.Post("/upsert/:id", controller.Upsert)
 	api.Delete("/:id", controller.DeleteById)
 }
