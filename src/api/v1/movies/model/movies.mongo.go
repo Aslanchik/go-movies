@@ -11,21 +11,19 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func FetchAll(ctx *fiber.Ctx) error {
-	query := bson.D{{}}
-
+func FetchAll(ctx *fiber.Ctx, query bson.D) (*[]schema.Movie, error) {
 	cursor, err := mongodb.Instance.Db.Collection(schema.SCHEMA_NAME).Find(ctx.Context(), query)
 	if err != nil {
-		return ctx.Status(500).SendString(err.Error())
+		return nil, err
 	}
 
 	var movies []schema.Movie = make([]schema.Movie, 0)
 
 	if err := cursor.All(ctx.Context(), &movies); err != nil {
-		return ctx.Status(500).SendString(err.Error())
+		return nil, err
 	}
 
-	return ctx.Status(200).JSON(movies)
+	return &movies, err
 }
 
 func FetchById(ctx *fiber.Ctx) error {
@@ -52,29 +50,15 @@ func FetchById(ctx *fiber.Ctx) error {
 	return ctx.Status(200).JSON(movie)
 }
 
-func Insert(ctx *fiber.Ctx) error {
+func Insert(ctx *fiber.Ctx, movie *schema.Movie) (interface{}, error) {
 	collection := mongodb.Instance.Db.Collection(schema.SCHEMA_NAME)
-
-	movie := new(schema.Movie)
-
-	if err := ctx.BodyParser(movie); err != nil {
-		return ctx.Status(400).SendString(err.Error())
-	}
-
-	movie.ID = ""
 
 	res, err := collection.InsertOne(ctx.Context(), movie)
 	if err != nil {
-		return ctx.Status(500).SendString(err.Error())
+		return nil, err
 	}
 
-	filter := bson.D{{Key: "_id", Value: res.InsertedID}}
-	createdDoc := collection.FindOne(ctx.Context(), filter)
-
-	createdMovie := &schema.Movie{}
-	createdDoc.Decode(createdMovie)
-
-	return ctx.Status(201).JSON(createdMovie)
+	return res.InsertedID, nil
 }
 
 func UpdateById(ctx *fiber.Ctx) error {

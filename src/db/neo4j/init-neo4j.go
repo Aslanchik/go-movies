@@ -3,8 +3,8 @@ package neo4j
 import "github.com/neo4j/neo4j-go-driver/neo4j"
 
 type Neo4jInstance struct {
-	Driver  *neo4j.Driver
-	Session *neo4j.Session
+	Driver  neo4j.Driver
+	Session neo4j.Session
 }
 
 var Instance Neo4jInstance
@@ -24,8 +24,8 @@ func ConfigureAndConnect() error {
 	}
 
 	Instance = Neo4jInstance{
-		Driver:  &driver,
-		Session: &session,
+		Driver:  driver,
+		Session: session,
 	}
 
 	return nil
