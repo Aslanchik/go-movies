@@ -6,7 +6,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -26,28 +25,16 @@ func FetchAll(ctx *fiber.Ctx, query bson.D) (*[]schema.Movie, error) {
 	return &movies, err
 }
 
-func FetchById(ctx *fiber.Ctx) error {
-	id, err := primitive.ObjectIDFromHex(ctx.Params("id"))
-	if err != nil {
-		return ctx.Status(400).SendString(err.Error())
-	}
-
+func FetchById(ctx *fiber.Ctx, query bson.D, movie *schema.Movie) error {
 	collection := mongodb.Instance.Db.Collection(schema.SCHEMA_NAME)
-
-	query := bson.D{{Key: "_id", Value: id}}
-
-	movie := new(schema.Movie)
 
 	error := collection.FindOne(ctx.Context(), query).Decode(&movie)
 
 	if error != nil {
-		if error == mongo.ErrNoDocuments {
-			return ctx.Status(404).JSON(error)
-		}
-		return ctx.Status(500).JSON(error)
+		return error
 	}
 
-	return ctx.Status(200).JSON(movie)
+	return nil
 }
 
 func Insert(ctx *fiber.Ctx, movie *schema.Movie) (interface{}, error) {
@@ -61,21 +48,7 @@ func Insert(ctx *fiber.Ctx, movie *schema.Movie) (interface{}, error) {
 	return res.InsertedID, nil
 }
 
-func UpdateById(ctx *fiber.Ctx) error {
-	id := ctx.Params("id")
-	movieId, err := primitive.ObjectIDFromHex(id)
-
-	if err != nil {
-		return ctx.Status(400).SendString(err.Error())
-	}
-
-	movie := new(schema.Movie)
-
-	if err := ctx.BodyParser(movie); err != nil {
-		return ctx.Status(400).SendString(err.Error())
-	}
-
-	query := bson.D{{Key: "_id", Value: movieId}}
+func UpdateById(ctx *fiber.Ctx, query bson.D, movie *schema.Movie) error {
 	update := bson.D{{
 		Key: "$set",
 		Value: bson.D{
@@ -86,36 +59,18 @@ func UpdateById(ctx *fiber.Ctx) error {
 		},
 	}}
 
-	err = mongodb.Instance.Db.Collection(schema.SCHEMA_NAME).FindOneAndUpdate(ctx.Context(), query, update).Err()
+	err := mongodb.Instance.Db.Collection(schema.SCHEMA_NAME).FindOneAndUpdate(ctx.Context(), query, update).Err()
 
 	if err != nil {
-		// ErrNoDocuments means that the filter did not match any documents in the collection
-		if err == mongo.ErrNoDocuments {
-			return ctx.Status(404).SendString(err.Error())
-		}
-		return ctx.Status(500).SendString(err.Error())
+		return err
 	}
 
-	movie.ID = id
-	return ctx.Status(200).JSON(movie)
+	return nil
 }
 
-func Upsert(ctx *fiber.Ctx) error {
-	id := ctx.Params("id")
-	movieId, err := primitive.ObjectIDFromHex(id)
-
-	if err != nil {
-		return ctx.Status(400).SendString(err.Error())
-	}
-
-	movie := new(schema.Movie)
-
-	if err := ctx.BodyParser(movie); err != nil {
-		return ctx.Status(400).SendString(err.Error())
-	}
+func Upsert(ctx *fiber.Ctx, query bson.D, movie *schema.Movie) error {
 	// set the query to upsert if no movie exists
 	opts := options.Update().SetUpsert(true)
-	query := bson.D{{Key: "_id", Value: movieId}}
 	update := bson.D{{
 		Key: "$set",
 		Value: bson.D{
@@ -126,39 +81,22 @@ func Upsert(ctx *fiber.Ctx) error {
 		},
 	}}
 
-	res, err := mongodb.Instance.Db.Collection(schema.SCHEMA_NAME).UpdateOne(ctx.Context(), query, update, opts)
+	_, err := mongodb.Instance.Db.Collection(schema.SCHEMA_NAME).UpdateOne(ctx.Context(), query, update, opts)
 
 	if err != nil {
-		return ctx.Status(500).SendString(err.Error())
+		return err
 	}
 
-	return ctx.Status(200).JSON(res)
+	return nil
 
 }
 
-func DeleteById(ctx *fiber.Ctx) error {
-	id, err := primitive.ObjectIDFromHex(
-		ctx.Params("id"),
-	)
-
-	// the provided ID might be invalid ObjectID
-	if err != nil {
-		return ctx.Status(400).SendString(err.Error())
-	}
-
-	// find and delete the movie with the given ID
-	query := bson.D{{Key: "_id", Value: id}}
+func DeleteById(ctx *fiber.Ctx, query bson.D) (*mongo.DeleteResult, error) {
 	result, err := mongodb.Instance.Db.Collection(schema.SCHEMA_NAME).DeleteOne(ctx.Context(), &query)
-
 	if err != nil {
-		return ctx.Status(500).SendString(err.Error())
-	}
-
-	// the movie might not exist
-	if result.DeletedCount < 1 {
-		return ctx.Status(404).Send([]byte("Movie with given id does not exist."))
+		return nil, err
 	}
 
 	// the movie was deleted
-	return ctx.SendStatus(204)
+	return result, nil
 }

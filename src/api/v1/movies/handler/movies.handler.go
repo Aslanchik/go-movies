@@ -6,15 +6,15 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func FetchAll(ctx *fiber.Ctx, query bson.D) (*[]schema.Movie, error) {
-	data, err := model.FetchAll(ctx, query)
-	return data, err
+	return model.FetchAll(ctx, query)
 }
 
-func FetchById(ctx *fiber.Ctx) error {
-	return model.FetchById(ctx)
+func FetchById(ctx *fiber.Ctx, query bson.D, movie *schema.Movie) error {
+	return model.FetchById(ctx, query, movie)
 }
 
 func Insert(ctx *fiber.Ctx, movie *schema.Movie) (interface{}, error) {
@@ -23,14 +23,14 @@ func Insert(ctx *fiber.Ctx, movie *schema.Movie) (interface{}, error) {
 	return id, err
 }
 
-func Upsert(ctx *fiber.Ctx) error {
-	return model.Upsert(ctx)
+func Upsert(ctx *fiber.Ctx, query bson.D, movie *schema.Movie) error {
+	return model.Upsert(ctx, query, movie)
 }
 
-func UpdateById(ctx *fiber.Ctx) error {
-	return model.UpdateById(ctx)
+func UpdateById(ctx *fiber.Ctx, query bson.D, movie *schema.Movie) error {
+	return model.UpdateById(ctx, query, movie)
 }
 
-func DeleteById(ctx *fiber.Ctx) error {
-	return model.DeleteById(ctx)
+func DeleteById(ctx *fiber.Ctx, query bson.D) (*mongo.DeleteResult, error) {
+	return model.DeleteById(ctx, query)
 }
