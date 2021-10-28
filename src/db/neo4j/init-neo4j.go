@@ -9,11 +9,11 @@ type Neo4jInstance struct {
 
 var Instance Neo4jInstance
 
-const dbURI = "bolt://localhost:7687"
+const NEO4J_URI = "bolt://localhost:7687"
 
 func ConfigureAndConnect() error {
 
-	driver, err := neo4j.NewDriver(dbURI, neo4j.NoAuth(), func(conf *neo4j.Config) { conf.Encrypted = false })
+	driver, err := neo4j.NewDriver(NEO4J_URI, neo4j.NoAuth(), func(conf *neo4j.Config) { conf.Encrypted = false })
 	if err != nil {
 		return nil
 	}

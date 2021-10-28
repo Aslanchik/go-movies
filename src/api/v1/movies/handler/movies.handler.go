@@ -19,7 +19,8 @@ func FetchById(ctx *fiber.Ctx, query bson.D, movie *schema.Movie) error {
 
 func Insert(ctx *fiber.Ctx, movie *schema.Movie) (interface{}, error) {
 	id, err := model.Insert(ctx, movie)
-	model.InsertNeo(ctx, movie, id) // need to add error handling here
+	model.InsertNeo(ctx, movie, id)     // need to add error handling here
+	model.InsertElastic(ctx, movie, id) // need to add error handling here
 	return id, err
 }
 
